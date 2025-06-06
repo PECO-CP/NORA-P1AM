@@ -2,3 +2,4 @@ NORA-main/.vscode/arduino.json
 NORA-main/.vscode/c_cpp_properties.json
 .vscode/*
 NORA-PyScript/SampleTemps.csv
+NORA-PyScript/run_on_linu.sh
