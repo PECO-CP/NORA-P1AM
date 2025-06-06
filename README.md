@@ -20,4 +20,4 @@ This project requires environment variables to send emails securely without hard
    EMAIL_SMTP_PORT=1901
    EMAIL_RECIPIENTS=jmustang@calpoly.edu,kmustang@calpoly.edu
 
-# NORA-Comms-Python
+# NORA-P1AM
