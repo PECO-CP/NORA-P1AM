@@ -3,3 +3,4 @@ ArduinoOutput/*
 venv/*
 venv.sh
 *.pyc
+test.py
