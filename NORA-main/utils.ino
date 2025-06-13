@@ -866,6 +866,7 @@ void setAlarmFault(AlarmFault fault_type) {
   if (fault_type == TOPSIDE_COMP_COMMS && debug_ignore_timeouts) //Global flag, set when want to ignore comms timeouts, returns without setting alarm
     return;
   state = ALARM;
+  resetMotor();
   fault = fault_type;
 
 /*

@@ -10,22 +10,32 @@
  * 
  */
 
- void homeTube() {
+ bool homeTube() {
   
   setMotorSpeed(-SAFE_RISE_SPEED_CM_SEC * 3);
   delay(1000);
   setMotorSpeed(SAFE_RISE_SPEED_CM_SEC); // Slowly raise the tube up to home position
+
+  int timeout = (915/SAFE_RISE_SPEED_CM_SEC) * 1000;
+  int start_time = millis();
   
-  while (!magSensorRead() && state != ALARM){ //While the calculated position is greater than and the mag sensor is not sensing the magnet...
+  while (!magSensorRead() && state != ALARM && (millis() - start_time) < timeout){ //While the calculated position is greater than and the mag sensor is not sensing the magnet...
     //Update LCD?
     checkEstop();
     //checkMotor();
     checkForSerial();
   }
 
+  if ((millis() - start_time) >= timeout){
+    setAlarmFault(TUBE);
+    return false;
+  }
+
   motor_pulses = 0;
+  
 
   turnMotorOff();
+  return true;
 }
 
 /**
@@ -60,7 +70,10 @@ void homeTube(unsigned long end_time, FlushStage curr_stage) {
  */
 
 bool dropTube(unsigned int distance_cm) {
-  Serial.println("IN DROP TUBE!");
+  
+  if (distance_cm > 914.4) //Greater than 30ft
+    return false;
+
   unsigned long start_time = millis();
   unsigned long curr_time = millis();
   unsigned long last_lcd_update = millis();
@@ -270,11 +283,24 @@ bool retrieveTube(float distance_cm) {
           rampUpMotor(curr_speed, IN_TUBE_RAISE_SPEED_CM_SEC);  // Resume controlled rise
         } else {
           stage = FINAL_SLOW_ALIGN;
-          stage_start_time = curr_time;
+          stage_start_time = millis();
         }
         break;
 
       case FINAL_SLOW_ALIGN:
+        if (millis() - stage_start_time > 15 * 1000) {
+          resetMotor();
+          resetLCD();
+          lcd.setCursor(0,1);
+          lcd.print("ATTEMPTING REHOME...");
+          if (homeTube()) {
+            state = RELEASE;
+            return true;
+          } else {
+            return false;
+          }
+        }
+
         rampDownMotor(curr_speed, SAFE_RISE_SPEED_CM_SEC);  // Final gentle alignment
         if (magSensorRead()) {
           turnMotorOff();

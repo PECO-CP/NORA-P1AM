@@ -17,6 +17,8 @@
 #define COMMS_REPORT_TUBE_ERR                       "ET"  // Report tube retrieval error
 #define COMMS_REPORT_SAMPLE_WATER_NOT_DETECTED_ERR  "EW"  // Report sample water not detected error
 #define COMMS_REPORT_ESTOP_PRESSED                  "EE"  // Report that the e-stop has been pressed
+#define COMMS_REPORT_SAMPLE_BEGIN                   "ES"  // Report that a sample has begun
+#define COMMS_REPORT_SAMPLE_END                     "EC"  //Report that sample is over!
 
 /************************* Default Timings *************************/
 #define DEFAULT_SAMPLE_INTERVAL_HOUR 8

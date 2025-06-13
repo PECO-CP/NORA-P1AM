@@ -37,6 +37,8 @@ COMMS_REPORT_SAMPLE_WATER_NOT_DETECTED_ERR = "EW"
 COMMS_REPORT_ESTOP_PRESSED                 = "EE"
 AQUSENS_NACK_RECEIVED                      = "EA"
 AQUSENS_ACK_TIMEOUT                        = "EF"
+COMMS_REPORT_SAMPLE_BEGIN                  = "ES"
+COMMS_REPORT_SAMPLE_END                    = "EC"  
 
 AQUSENS_ACK_TIMEOUT_SEC                    = 10
 
@@ -247,33 +249,61 @@ def detect_serial_port():
                 return ports[0]
     raise RuntimeError("No valid serial port found for your OS.")
 
+last_estop_time = 0
+
 def reportErr(err_type, last_aqusens_command=None):
+    global last_estop_time
+    current_time = time.time()
+    isEstopErr = False
+
     email_subject = ""
     email_body    = ""
     if (err_type == COMMS_REPORT_ESTOP_PRESSED):
         email_body = "ESTOP ERR"
         email_subject = "ESTOP_ERR"
+        isEstopErr = True
+    
     elif (err_type == COMMS_REPORT_MOTOR_ERR):
         email_body = "MOTOR ERR"
         email_subject = "MOTOR_ERR"
+    
     elif (err_type == COMMS_REPORT_SAMPLE_WATER_NOT_DETECTED_ERR):
         email_body = "SAMPLE WATER NOT DETECTED ERR"
         email_subject = "ESTOP_ERR"
+    
     elif (err_type == COMMS_REPORT_TUBE_ERR):
         email_body = "TUBE TIMEOUT ERR"
         email_subject = "TUBE TIMEOUT ERR"
+    
     elif (err_type == AQUSENS_NACK_RECEIVED):
         email_body = "AQUSENS NACK RECEIVED"
         if email_subject is not None:
             email_subject = f"AQUSENS NACK RECEIVED: {last_aqusens_command}"
         else:
             email_subject = "AQUSENS NACK RECEIVED FOR UNKNOWN COMMAND" #Should never trigger but for safety
+    
+    elif (err_type == COMMS_REPORT_SAMPLE_BEGIN):
+        timestamp = datetime.now().strftime("%I:%M%p on %m/%d/%y")
+        email_body = "NORA SAMPLING EVENT TRIGGERED"
+        email_body = f"NORA SAMPLING EVENT TRIGGERED AT {timestamp}"
+    
+    elif (err_type == COMMS_REPORT_SAMPLE_END):
+        timestamp = datetime.now().strftime("%I:%M%p on %m/%d/%y")
+        email_body = "NORA SAMPLING EVENT COMPLETED SUCCESSFULLY"
+        email_body = f"NORA SAMPLING EVENT COMPLETED SUCCESSFULLY AT {timestamp}"
+    
     elif (err_type == AQUSENS_ACK_TIMEOUT):
         email_body = "AQUSENS ACK TIMEOUT"
         email_subject = "AQUSENS ACK TIMEOUT"
+    
     else:
         email_body = "UNKNOWN ERR"
         email_subject = "UNKNOWN ERR"
+    
+    if (isEstopErr and current_time - last_estop_time < 10 ):
+        return
+    elif (isEstopErr):
+        last_estop_time = current_time
 
     email_errs.send_email(email_subject, email_body)
 

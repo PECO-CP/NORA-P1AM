@@ -185,7 +185,13 @@ void recoverLCD(String position) {
   lcd.setCursor(0,2);
   lcd.print("CURR POSITION:");
   lcd.setCursor(15,2);
-  lcd.print(position);
+  if (position.toFloat() > 15) {
+    lcd.print("0.0");
+  }
+  else {
+    lcd.print(position);
+  }
+  
 
   float rtd1 = readRTD(SAMPLE_TEMP_SENSOR);
 
@@ -215,7 +221,7 @@ void sampleLCD(unsigned long end_time) {
   lcd.print("SAMPLING");
   lcd.setCursor(0,1);
   lcd.print("SEC REMAINING:");
-  lcd.print(floor((end_time - millis()) / 1000));
+  lcd.print((int)(floor((end_time - millis()) / 1000)));
   lcd.setCursor(4, 2);
   lcd.print("RTD1: ");
   lcd.print(String(readRTD(SAMPLE_TEMP_SENSOR), 1));
@@ -264,8 +270,10 @@ void preSampleLCD() {
     sec_remaining = int((end_time - curr_time) / 1000) + 1; //Rounds up, displays time 45-1 and not 44 to 0
 
     if (curr_time - last_time_lcd_update_time > 500) {//update every 500ms
+      
       snprintf(secString, sizeof(secString), "%02d", sec_remaining);
       lcd.setCursor(2, 2);
+      
       lcd.print(secString);
 
       lcd.setCursor(16, 0);

@@ -114,12 +114,14 @@ void ensureSampleStartLoop() {
  * Checks for E-Stop press
  */
 void releaseLoop() {
+  sendToPython(COMMS_REPORT_SAMPLE_BEGIN);
   resetLCD();
   lcd.setCursor(0, 1);
   lcd.print("CALCULATING DROP");
   lcd.setCursor(0, 2);
   lcd.print("DISTANCE...");
   drop_distance_cm = getDropDistance();
+  
 
   // if (is_second_retrieval_attempt) { //If this is the second try at retrieving a sample, increase drop dist by a meter
   //   drop_distance_cm += SECOND_ATTEMPT_DROP_DIST_INCREASE_CM;
@@ -127,8 +129,8 @@ void releaseLoop() {
 
   //drop_distance_cm = 10; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
 
-  // Serial.print("DROP DIST CM");
-  // Serial.println(drop_distance_cm);
+  Serial.print("DROP DIST CM");
+  Serial.println(drop_distance_cm);
 
   liftupTube();
   delay(3000);
@@ -142,6 +144,11 @@ void releaseLoop() {
 
     else if (dropTube(drop_distance_cm)) {
       state = SOAK;
+    }
+
+    else {
+      setAlarmFault(TUBE);
+      continue;
     }
   }
 }
@@ -225,7 +232,9 @@ void recoverLoop() {
 
     if (retrieveTube(0)) { //Return to 0 distance, or the "home" state, only go to sample state if water is detected
       //Serial.println("DONE!!");
-
+      if (state == RELEASE) {
+        return;
+      }
       state = SAMPLE;
     }
     else {
@@ -501,9 +510,13 @@ void dryLoop() {
   }
 
   unliftTube();
-
-  if (state != ALARM)
+  
+  if (state != ALARM) {
+    sendToPython(COMMS_REPORT_SAMPLE_END);
     state = STANDBY;
+  }
+  
+    
   }
 
 
