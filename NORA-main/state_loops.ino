@@ -129,8 +129,8 @@ void releaseLoop() {
 
   //drop_distance_cm = 10; // FIXME:MANUALLY SET TO 10 FOR DEBUG PURPOSES
 
-  Serial.print("DROP DIST CM");
-  Serial.println(drop_distance_cm);
+  //Serial.print("DROP DIST CM");
+  //Serial.println(drop_distance_cm);
 
   liftupTube();
   delay(3000);

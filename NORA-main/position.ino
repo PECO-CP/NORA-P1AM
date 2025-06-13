@@ -81,8 +81,8 @@ bool dropTube(unsigned int distance_cm) {
 
   uint32_t final_step_count = DISTANCE_TO_PULSES(abs(distance_cm));
   motor_pulses = 0;
-  Serial.println("FINAL STEP COUNT!");
-  Serial.println(final_step_count);
+  //Serial.println("FINAL STEP COUNT!");
+  //Serial.println(final_step_count);
   int curr_speed = 0;
 
   if (checkEstop()) {

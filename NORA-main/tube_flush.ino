@@ -7,6 +7,7 @@
 unsigned long flushDevice() {
   unsigned long start_time = millis();
   updateSolenoid(OPEN, SOLENOID_ONE);
+  delay(10*1000);
   while (readRTD(FLUSHWATER_TEMP_SENSOR) > DEVICE_FLUSH_WATER_TEMP_MAX_C) {
     // do nothing, wait for water to cool down
   }

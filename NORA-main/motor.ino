@@ -12,10 +12,10 @@ void motorInit() {
  */
 bool isMotorAlarming() {
     if (analogRead(ALARM_PLUS) > ALARM_THRESHOLD_VALUE) {
-        Serial.print("Motor Alarm Read: ");
-        Serial.println(analogRead(ALARM_PLUS));
-        Serial.print("State: ");
-        Serial.println(state);
+        //Serial.print("Motor Alarm Read: ");
+        //Serial.println(analogRead(ALARM_PLUS));
+        //Serial.print("State: ");
+        //Serial.println(state);
         return true;
     }
     return false;

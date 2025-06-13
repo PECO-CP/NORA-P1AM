@@ -221,6 +221,8 @@ void sampleLCD(unsigned long end_time) {
   lcd.print("SAMPLING");
   lcd.setCursor(0,1);
   lcd.print("SEC REMAINING:");
+  lcd.print("    ");
+  lcd.setCursor(15, 1);
   lcd.print((int)(floor((end_time - millis()) / 1000)));
   lcd.setCursor(4, 2);
   lcd.print("RTD1: ");
@@ -249,7 +251,7 @@ void preSampleLCD() {
   lcd.setCursor(5, 2);
   lcd.print("SEC REMAINING");
 
-  char secString[3];
+  char secString[4];
   unsigned long start_time = millis();
   unsigned long curr_time = start_time;
   unsigned long end_time = start_time + PRE_SAMPLE_LOAD_TIME_MS;
@@ -271,8 +273,8 @@ void preSampleLCD() {
 
     if (curr_time - last_time_lcd_update_time > 500) {//update every 500ms
       
-      snprintf(secString, sizeof(secString), "%02d", sec_remaining);
-      lcd.setCursor(2, 2);
+      snprintf(secString, sizeof(secString), "%3d", sec_remaining);
+      lcd.setCursor(1, 2);
       
       lcd.print(secString);
 

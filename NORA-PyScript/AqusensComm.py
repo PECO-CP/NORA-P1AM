@@ -458,7 +458,7 @@ def communicate(ser, sample_time_sec):
                 #if temp_data.isdigit():
                 try:
                     rec = float(temp_data)
-                    print("TEMP DATA (strip) -> ", rec)
+                    #print("TEMP DATA (strip) -> ", rec)
                     temperatures.append(rec)
                 except ValueError:
                     print("ERR: TEMP CONV ERR ", temp_data)
