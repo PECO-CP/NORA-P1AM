@@ -19,7 +19,7 @@
   while (!magSensorRead() && state != ALARM){ //While the calculated position is greater than and the mag sensor is not sensing the magnet...
     //Update LCD?
     checkEstop();
-    checkMotor();
+    //checkMotor();
     checkForSerial();
   }
 
@@ -72,7 +72,7 @@ bool dropTube(unsigned int distance_cm) {
   Serial.println(final_step_count);
   int curr_speed = 0;
 
-  if (checkEstop() || checkMotor()) {
+  if (checkEstop()) {
     return false;
   }
 
@@ -87,7 +87,7 @@ bool dropTube(unsigned int distance_cm) {
 
   while (motor_pulses <= final_step_count) {
     
-    if (checkEstop() || checkMotor()) { //If E-stop is pressed, set alarm fault and head into alarm loop.
+    if (checkEstop()) { //If E-stop is pressed, set alarm fault and head into alarm loop.
       return false;
     }
 
@@ -221,7 +221,7 @@ bool retrieveTube(float distance_cm) {
   uint32_t final_step_count = DISTANCE_TO_PULSES(abs(distance_cm));
   int curr_speed = 0;
 
-  if (checkEstop() || checkMotor()) {
+  if (checkEstop()) {
     return false;
   }
 
@@ -233,7 +233,7 @@ bool retrieveTube(float distance_cm) {
     // sendTempOverSerial();
     checkForSerial();
 
-    if (checkEstop() || checkMotor()) {
+    if (checkEstop()) {
       return false;
     }
 
@@ -374,7 +374,7 @@ bool retrieveTube(float distance_cm) {
 void liftupTube() {
   setMotorSpeed(DRAIN_LIFT_SPEED_CM_S);
   while(magSensorRead() && state != ALARM) {
-    checkMotor();
+    //checkMotor();
     checkEstop();
   }; //Sit in this loop, waiting for the mag sensor to stop sensing the tube magnet
                              // Once the magnetic sensor stop reading the magnet, the tube is pulled up enough
@@ -394,12 +394,12 @@ void unliftTube() { // Resets tube back to home position after being lifted to d
     
     while(!magSensorRead() && state != ALARM){
       checkEstop();
-      checkMotor();
+      //checkMotor();
     }; //Wait for the magnetic sensor to trip again
 
     while(magSensorRead() && state != ALARM){
       checkEstop();
-      checkMotor();
+      //checkMotor();
     }; //Then wait for it to "untrip", want to overshoot the magnet and then rehome
 
     homeTube();

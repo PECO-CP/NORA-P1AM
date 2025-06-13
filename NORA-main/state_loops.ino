@@ -137,7 +137,7 @@ void releaseLoop() {
 
   // actually drop the tube
   while (state == RELEASE){
-    if (checkMotor() || checkEstop())
+    if (checkEstop())
       continue; //Continue to next iteration of the loop, where state will be checked again (and will be ALARM)
 
     else if (dropTube(drop_distance_cm)) {
@@ -165,7 +165,7 @@ void soakLoop() {
 
   while (state == SOAK && millis() < end_time) {
     checkEstop();
-    checkMotor();
+    //checkMotor();
     checkForSerial();
 
     // Calculate remaining time, accounting for millis() overflow
@@ -219,7 +219,7 @@ void recoverLoop() {
   while (state == RECOVER) {
     // sendTempOverSerial();
     // checkEstop();
-    if (checkMotor() || checkEstop()) //If motor is alarming or estop is pressed, continue to next iter
+    if (checkEstop()) //If motor is alarming or estop is pressed, continue to next iter
       continue;
     
 

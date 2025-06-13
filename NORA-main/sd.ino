@@ -155,8 +155,8 @@ float getDropDistance(){
     }
 
     // if drop distance is -1000, or less than -100 then get SD card info
-    if (drop_distance_cm < -100) {
-        
+    if (true || drop_distance_cm < -100) {
+        Serial.println("SD CARD!");
         drop_distance_cm = getTideData();
     }
     // otherwise convert from meters to cm

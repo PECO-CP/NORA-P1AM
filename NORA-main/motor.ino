@@ -21,20 +21,20 @@ bool isMotorAlarming() {
     return false;
 }
 
-/**
- * @brief Checks the motor, sets alarm and turns motor off if it is
- * 
- * @return True if motor is alarming, false if all is well (to keep consistent with checkEstop())      
- */
-bool checkMotor() {
-    if (isMotorAlarming()) {
-        turnMotorOff();
-        setAlarmFault(MOTOR);
-        return true;
-    }
+// /**
+//  * @brief Checks the motor, sets alarm and turns motor off if it is
+//  * 
+//  * @return True if motor is alarming, false if all is well (to keep consistent with checkEstop())      
+//  */
+// bool checkMotor() {
+//     if (isMotorAlarming()) {
+//         turnMotorOff();
+//         setAlarmFault(MOTOR);
+//         return true;
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
 
 /**
