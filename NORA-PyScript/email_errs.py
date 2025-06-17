@@ -23,15 +23,20 @@ def send_email(subject, body, to_addrs=None):
     if to_addrs is None:
         to_addrs = EMAIL_RECIPIENTS
 
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = DEFAULT_FROM
-    msg["To"] = ", ".join(to_addrs) if isinstance(to_addrs, list) else to_addrs
-    msg.set_content(body)
+	try:
+    	msg = EmailMessage()
+    	msg["Subject"] = subject
+    	msg["From"] = DEFAULT_FROM
+    	msg["To"] = ", ".join(to_addrs) if isinstance(to_addrs, list) else to_addrs
+    	msg.set_content(body)
 
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        server.send_message(msg)
+    	with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+			server.ehlo()
+    		server.starttls()
+        	server.ehlo()
+        	server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        	server.send_message(msg)
+
+	except smtplib.SMTPAuthenticationError as e:
+        print(f"SMTP authentication failed: {e}")
+    
