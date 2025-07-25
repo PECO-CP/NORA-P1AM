@@ -24,7 +24,7 @@ WRITE_FILE = "command_file.txt"
 TEMP_CSV = "SampleTemps.csv"
 DIRECTORY_PATH = "D:/Data/Raw"
 NOAA_TIDE_LEVEL_QUERY_URL = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=latest&station=9412110&product=water_level&datum=MLLW&time_zone=lst&units=metric&format=json"
-windowsCommPort = "COM3" #hello 
+windowsCommPort = "COM3" 
 
 TIDE_LEVEL_QUERY_TYPE   = "T"
 SAMPLE_MESSAGE_TYPE     = "S"
