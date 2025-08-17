@@ -114,18 +114,43 @@ def handleTerminalInput(ser, terminalCommand):
             time.sleep(0.05)
             replyString = safe_serial_readline(ser)
             #print("got", replyString)
-            match = re.match(r"([01])H(\d+)M(\d+)", replyString)
+            pattern = r"([01])H(\d+)M(\d+)NS(\d+)Y(\d+)O(\d+)D(\d+)H(\d+)M"
+            match = re.match(pattern, replyString)
+
             if match:
                 isSampling = match.group(1) == '1'
-                hours = int(match.group(2))
-                minutes = int(match.group(3))
+                interval_hours = int(match.group(2))
+                interval_minutes = int(match.group(3))
+
+                alarm_year = int(match.group(4))
+                alarm_month = int(match.group(5))
+                alarm_day = int(match.group(6))
+                alarm_hour = int(match.group(7))
+                alarm_minute = int(match.group(8))
 
                 status_string = "enabled" if isSampling else "disabled"
-                hour_str = " hour" if hours == 1 else " hours"
-                minute_str = " minute" if minutes == 1 else " minutes"
-                print(f"NORA has interval sampling {status_string}, sampling every {hours}{hour_str} and {minutes}{minute_str}.\n")
-            
+                hour_str = " hour" if interval_hours == 1 else " hours"
+                minute_str = " minute" if interval_minutes == 1 else " minutes"
 
+                # Construct datetime object directly
+                next_sample_time = datetime(alarm_year, alarm_month, alarm_day, alarm_hour, alarm_minute)
+
+                # Format month, day, year
+                date_str = next_sample_time.strftime("%B %d %Y")
+
+                # Format time in 12-hour format
+                hour_12 = next_sample_time.hour % 12 or 12
+                am_pm = "AM" if next_sample_time.hour < 12 else "PM"
+                time_str = f"{hour_12}:{next_sample_time.minute:02d}{am_pm.lower()}"
+
+                next_sample_str = f"{date_str} at {time_str}"
+
+                print(f"NORA has interval sampling {status_string}, sampling every {interval_hours}{hour_str} and {interval_minutes}{minute_str}.\n")
+                print(f"NORA will sample next on {next_sample_str}")
+
+            else:
+                print("Failed to parse replyString")
+            
         case "set-interval":
             if len(terminalCommand) != 3:
                 print("ERR: Invalid set-interval usage!\n"
@@ -218,13 +243,13 @@ def handleTerminalInput(ser, terminalCommand):
             
         case "help":
             print("Known commands:\n"
-                "  status                              — View the current status of NORA\n" #Q0, recv 1HxxMxx for sampling, or 0HxxMxx for not sampling
+                "  status                              — View the current status of NORA and next sample time\n" #Q0, recv 1HxxMxx for sampling, or 0HxxMxx for not sampling
                 "  set-interval <hours> <minutes>      — Set the sampling interval (hours and minutes)\n" #Q1HxxMxx
                 "  start-sampling                      — Enable interval sampling\n" #Q2
                 "  stop-sampling                       — Disable interval sampling\n" #Q3
                 "  run-sample                          — Start a sample manually\n" #Q4
                 "  read-temps                          — Returns the temperatures of all system RTDs\n" #Q5, recv 0R1XX.XXR2xx.xxR3xx.xx
-                "  help                                — See this lovely help message again")
+                "  help                                — See this help message again")
         case _:
             print(
                 f"ERR: UNKNOWN COMMAND {terminalCommand[0]}\n"

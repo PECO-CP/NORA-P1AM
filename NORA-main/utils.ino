@@ -729,6 +729,17 @@ void sendToPython(String string_to_send) {
             replyString += String(sample_interval.Hour);
             replyString += "M";
             replyString += String(sample_interval.Minute);
+            replyString += "NS";
+            replyString += String(rtc.getAlarmYear());
+            replyString += "Y";
+            replyString += String(rtc.getAlarmMonth());
+            replyString += "O";
+            replyString += String(rtc.getAlarmDay());
+            replyString += "D";
+            replyString += String(rtc.getAlarmHours());
+            replyString += "H";
+            replyString += String(rtc.getAlarmMinutes());
+            replyString += "M";
           }
           else if (data[1] == '1') {
             int hValue = 0;
