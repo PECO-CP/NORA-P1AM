@@ -120,6 +120,79 @@ void updateAlarm(tmElements_t delay_time) {
 }
 
 /**
+ * @brief update timer alarm with respect to the next start time
+ * 
+ * @param startHour start time hour in 24-hour representation
+ * @param startMinute start time minute
+ */
+
+void updateAlarm(int startHour, int startMinute) {
+    //Get current time
+    int nowHour = rtc.getHours();
+    int nowMin  = rtc.getMinutes();
+    int nowSec  = rtc.getSeconds();
+    int nowDay  = rtc.getDay();
+    int nowMonth = rtc.getMonth();
+    int nowYear  = rtc.getYear();
+
+    //Start with today as candidate
+    next_sample_time.Year   = nowYear;
+    next_sample_time.Month  = nowMonth;
+    next_sample_time.Day    = nowDay;
+    next_sample_time.Hour   = startHour;
+    next_sample_time.Minute = startMinute;
+    next_sample_time.Second = 0;
+
+    //If start time already passed today, move to next day
+    if (nowHour > startHour || (nowHour == startHour && nowMin >= startMinute)) {
+        next_sample_time.Day += 1;
+
+        //Handle month/year rollover if needed
+        int daysInMonth = getDaysInMonth(next_sample_time.Month, next_sample_time.Year);
+        if (next_sample_time.Day > daysInMonth) {
+            next_sample_time.Day = 1;
+            next_sample_time.Month += 1;
+            if (next_sample_time.Month > 12) {
+                next_sample_time.Month = 1;
+                next_sample_time.Year += 1;
+            }
+        }
+    }
+
+    //Break time into struct for internal use
+    breakTime(makeTime(next_sample_time), next_sample_time);
+
+    // Set RTC alarm
+    rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, next_sample_time.Second);
+    rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
+    rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
+    rtc.attachInterrupt(alarmTriggered);
+}
+
+/**
+ * @brief Calculates the days in a particular month and year, utility function for setting the start time
+ * 
+ */
+
+int getDaysInMonth(int month, int year) {
+    switch (month) {
+        case 1: case 3: case 5: case 7: case 8: case 10: case 12:
+            return 31;
+        case 4: case 6: case 9: case 11:
+            return 30;
+        case 2:
+            //Leap year 
+            if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0))
+                return 29;
+            else
+                return 28;
+        default:
+            return 30; //fallback, should never happen
+    }
+}
+
+
+/**
  * @brief update timer alarm for next sample interval
  * 
  */
@@ -753,26 +826,40 @@ void sendToPython(String string_to_send) {
               // Extract substring from after H to before M
               String hStr = data.substring(hIndex + 1, mIndex);
               hValue = hStr.toInt();
+              int sIndex = data.indexOf("ST");
 
-              // Extract substring from after M to the end
-              String mStr = data.substring(mIndex + 1);
+              //Extract substring from after M to the end
+              String mStr;
+              if (sIndex != -1) {
+                mStr = data.substring(mIndex + 1, sIndex);
+              } else {
+                mStr = data.substring(mIndex + 1);
+              }
+              
               mValue = mStr.toInt();
-
               sample_interval.Hour = hValue;
               sample_interval.Minute = mValue;
-              updateAlarm();
+
+              if (sIndex != -1) { //Start time parsing
+                int stHourIndex = data.indexOf('H', sIndex);
+                int stMinIndex = data.indexOf('M', stHourIndex);
+                if (stHourIndex != -1 && stMinIndex != -1 && stMinIndex > stHourIndex) {
+                  String startHourStr = data.substring(stHourIndex + 1,  stMinIndex);
+                  String startMinStr = data.substring(stMinIndex + 1);
+
+                  int startHourInt = startHourStr.toInt();
+                  int startMinInt = startMinStr.toInt();
+                  updateAlarm(startHourInt, startMinInt);
+                }
+              }
+              else {
+                updateAlarm();
+              }
               replyString += is_interval_sampling? "S1" : "S0";
             }
             else {
               replyString += "1";
             }
-            
-
-            // Serial.print("H value: ");
-            // Serial.println(hValue);
-            // Serial.print("M value: ");
-            // Serial.println(mValue);
-
           }
           else if (data[1] == '2') {
             is_interval_sampling = true;
