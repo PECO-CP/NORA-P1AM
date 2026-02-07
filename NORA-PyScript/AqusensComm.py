@@ -43,7 +43,7 @@ COMMS_REPORT_SAMPLE_END                    = "EC"
 
 AQUSENS_ACK_TIMEOUT_SEC                    = 10
 
-CLI_DEBUG_MODE = True
+CLI_DEBUG_MODE = False
 
 class DebugSerial:
     def __init__(self):
