@@ -187,7 +187,8 @@ def handleTerminalInput(ser, terminalCommand):
                     intHourStr = str(intHour)
                     intMinStr = str(intMin)
                     sendString += "STH" + str(intHour) + "M" + str(intMin)
-                    print(f"Setting sampling interval to {hours}{hour_str} and {minutes}{minute_str}, next sample triggered at {intHourStr if intHour > 9 else "0" + intHourStr}:{intMinStr if intMin > 9 else "0" + intMinStr}...")
+                    print(f"Setting sampling interval to {hours}{hour_str} and {minutes}{minute_str}, "f"next sample triggered at {intHour:02d}:{intMin:02d}...")
+                    #print(f"Setting sampling interval to {hours}{hour_str} and {minutes}{minute_str}, next sample triggered at {intHourStr if intHour > 9 else "0" + intHourStr}:{intMinStr if intMin > 9 else "0" + intMinStr}...")
                 sendString += "\n"
                 safe_serial_write(ser, sendString)
                 time.sleep(0.05)
