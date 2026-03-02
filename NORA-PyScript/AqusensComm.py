@@ -161,8 +161,8 @@ def handleTerminalInput(ser, terminalCommand):
                 print(errString)
                 return
             else:
-                hours = (terminalCommand[1])
-                minutes = (terminalCommand[2])
+                hours = int(terminalCommand[1])
+                minutes = int(terminalCommand[2])
                 hour_str = " hour" if hours == 1 else " hours"
                 minute_str = " minute" if minutes == 1 else " minutes"
                 if len(terminalCommand) == 3:
