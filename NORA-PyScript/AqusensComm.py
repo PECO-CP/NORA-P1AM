@@ -114,8 +114,14 @@ def handleTerminalInput(ser, terminalCommand):
             time.sleep(0.05)
             replyString = safe_serial_readline(ser)
             #print("got", replyString)
+            #print("RAW REPLY:", repr(replyString)) #enables troubleshooting to see what the system is sending NORA
             pattern = r"([01])H(\d+)M(\d+)NS(\d+)Y(\d+)O(\d+)D(\d+)H(\d+)M"
             match = re.match(pattern, replyString)
+            
+            if not match:
+                print("SATUS PARSE FAILED")
+                print("Reply was:",replyString)
+                return
 
             if match:
                 isSampling = match.group(1) == '1'
@@ -123,6 +129,8 @@ def handleTerminalInput(ser, terminalCommand):
                 interval_minutes = int(match.group(3))
 
                 alarm_year = int(match.group(4))
+                if alarm_year <100:
+                    alarm_year += 2000
                 alarm_month = int(match.group(5))
                 alarm_day = int(match.group(6))
                 alarm_hour = int(match.group(7))
@@ -131,6 +139,11 @@ def handleTerminalInput(ser, terminalCommand):
                 status_string = "enabled" if isSampling else "disabled"
                 hour_str = " hour" if interval_hours == 1 else " hours"
                 minute_str = " minute" if interval_minutes == 1 else " minutes"
+                
+                max_day = calendar.monthrange(alarm_year, alarm_month) [1]
+                if alarm_day > max_day:
+                    print(f"WARNING: Invalid date from device: {alarm_year}-{alarm_month}-{alarm_day}")
+                    alarm_day = max_day
 
                 # Construct datetime object directly
                 next_sample_time = datetime(alarm_year, alarm_month, alarm_day, alarm_hour, alarm_minute)
@@ -161,8 +174,8 @@ def handleTerminalInput(ser, terminalCommand):
                 print(errString)
                 return
             else:
-                hours = int(terminalCommand[1])
-                minutes = int(terminalCommand[2])
+                hours = (terminalCommand[1])
+                minutes = (terminalCommand[2])
                 hour_str = " hour" if hours == 1 else " hours"
                 minute_str = " minute" if minutes == 1 else " minutes"
                 if len(terminalCommand) == 3:
@@ -188,7 +201,7 @@ def handleTerminalInput(ser, terminalCommand):
                     intMinStr = str(intMin)
                     sendString += "STH" + str(intHour) + "M" + str(intMin)
                     print(f"Setting sampling interval to {hours}{hour_str} and {minutes}{minute_str}, "f"next sample triggered at {intHour:02d}:{intMin:02d}...")
-                    #print(f"Setting sampling interval to {hours}{hour_str} and {minutes}{minute_str}, next sample triggered at {intHourStr if intHour > 9 else "0" + intHourStr}:{intMinStr if intMin > 9 else "0" + intMinStr}...")
+                    #print(f"Setting sampling interval to {hours}{hour_str} and {minutes}{minute_str}, next sample triggered at {intHourStr if intHour > 9 else '0' + intHourStr}:{intMinStr if intMin > 9 else '0' + intMinStr}...")
                 sendString += "\n"
                 safe_serial_write(ser, sendString)
                 time.sleep(0.05)
