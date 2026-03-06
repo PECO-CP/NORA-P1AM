@@ -151,7 +151,8 @@ void updateAlarm(tmElements_t delay_time) {
   rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0); // Set alarm for the specified time
   //rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
   rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, tmYearToCalendar(next_sample_time.Year));
-
+  
+  rtc.disableAlarm();
   rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS); // Match hours and minutes
   rtc.attachInterrupt(alarmTriggered); // Attach the ISR for the alarm interrupt
 }
@@ -228,9 +229,10 @@ void updateAlarm(int startHour, int startMinute) {
     
 
     // Set RTC alarm
-    rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, next_sample_time.Second);
+    rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0);
     //rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
     rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, tmYearToCalendar(next_sample_time.Year));
+    rtc.disableAlarm();
     rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
     rtc.attachInterrupt(alarmTriggered);
 }
@@ -296,7 +298,7 @@ void updateAlarm() {
   rtc.setAlarmTime(
       next_sample_time.Hour,
       next_sample_time.Minute,
-      next_sample_time.Second
+      0
   );
 
   rtc.setAlarmDate(
@@ -351,7 +353,7 @@ void alarmTriggered() {
 
   rtc.setAlarmTime(next_sample_time.Hour,
                   next_sample_time.Minute,
-                  next_sample_time.Second);
+                  0);
 
   rtc.setAlarmDate(next_sample_time.Day,
                   next_sample_time.Month,
@@ -360,6 +362,8 @@ void alarmTriggered() {
 
   // rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0); // Set alarm for the specified time
   // rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
+  rtc.disableAlarm();
+  rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
 
   if (state == STANDBY && is_interval_sampling) {
     state = RELEASE;
