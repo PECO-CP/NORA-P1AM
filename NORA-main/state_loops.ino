@@ -66,6 +66,7 @@ void standbyLoop() {
         state = ENSURE_SAMPLE_START;
       }
     }
+    delay(10);
   }
 }
 

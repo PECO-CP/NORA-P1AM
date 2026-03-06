@@ -150,7 +150,8 @@ void updateAlarm(tmElements_t delay_time) {
   
   rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0); // Set alarm for the specified time
   //rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
-  rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, tmYearToCalendar(next_sample_time.Year));
+  //rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, tmYearToCalendar(next_sample_time.Year));
+  rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, rtc.getYear());
   
   rtc.disableAlarm();
   rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS); // Match hours and minutes
@@ -231,7 +232,8 @@ void updateAlarm(int startHour, int startMinute) {
     // Set RTC alarm
     rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0);
     //rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
-    rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, tmYearToCalendar(next_sample_time.Year));
+    //rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, tmYearToCalendar(next_sample_time.Year));
+    rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month,rtc.getYear());
     rtc.disableAlarm();
     rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
     rtc.attachInterrupt(alarmTriggered);
@@ -305,7 +307,8 @@ void updateAlarm() {
       next_sample_time.Day,
       next_sample_time.Month,
       //next_sample_time.Year
-      tmYearToCalendar(next_sample_time.Year)
+      //tmYearToCalendar(next_sample_time.Year)
+      rtc.getYear()
   );
 
   rtc.disableAlarm();
@@ -339,6 +342,11 @@ void updateAlarm() {
 // }
 
 void alarmTriggered() {
+
+  //sendToPython("ALARM_TRIGGERED");
+
+  rtc.disableAlarm();
+
   uint32_t now = rtc.getEpoch();
 
   uint32_t intervalSeconds =
@@ -358,11 +366,12 @@ void alarmTriggered() {
   rtc.setAlarmDate(next_sample_time.Day,
                   next_sample_time.Month,
                   //next_sample_time.Year);
-                  tmYearToCalendar(next_sample_time.Year));
+                  //tmYearToCalendar(next_sample_time.Year));
+                  rtc.getYear());
 
   // rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0); // Set alarm for the specified time
   // rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
-  rtc.disableAlarm();
+
   rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
 
   if (state == STANDBY && is_interval_sampling) {
@@ -548,7 +557,8 @@ String getNextSampleTime() {
            next_sample_time.Month,
            next_sample_time.Day,
           //  next_sample_time.Year,
-          tmYearToCalendar(next_sample_time.Year),
+          //tmYearToCalendar(next_sample_time.Year),
+          rtc.getYear(),
            next_sample_time.Hour,
            next_sample_time.Minute);
 
