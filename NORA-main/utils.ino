@@ -39,13 +39,32 @@ void estopInit() {
 void rtcInit() {
   rtc.begin();
 
-  uint32_t epoch = requestEpochTime(); //request epoch time from topside computer
+//if retry loop doesn't work, use this code and either choose default May or default Jan 2000
+  //uint32_t epoch = requestEpochTime(); //request epoch time from topside computer
 
-  if (epoch == 0) { //err, likely timeout in communication with topside computer
-    epoch = 1746104460; //Default to May 1, 2025 at midnight
+  //if (epoch == 0) { //err, likely timeout in communication with topside computer
+  //  epoch = 1746104460; //Default to May 1, 2025 at midnight
+  //}
+
+  //if (epoch != 0) { //err, likely timeout in communication with topside computer
+  //  rtc.setEpoch(epoch); //Default to January 2000
+  //}
+  
+//allows the system to request time before resetting the date
+  uint32_t epoch = 0;
+  int attempts = 0;
+
+  while (epoch == 0 && attempts < 30) {
+    epoch = requestEpochTime();
+    delay(2000);
+    attempts++;
   }
 
-  rtc.setEpoch(epoch);
+  if (epoch !=0) { //err, likely issue in communication with topside computer
+    rtc.setEpoch(epoch); //default to Jaunary 2000
+  }
+
+  //rtc.setEpoch(epoch);
   sample_interval.Year = 0;
   sample_interval.Month = 0;
   sample_interval.Day = 0;
@@ -53,11 +72,22 @@ void rtcInit() {
   sample_interval.Minute = DEFAULT_SAMPLE_INTERVAL_MIN;
   sample_interval.Second = DEFAULT_SAMPLE_INTERVAL_SEC;
 
-  next_sample_time.Year = rtc.getYear() + sample_interval.Year;
-  next_sample_time.Month = rtc.getMonth() + sample_interval.Month;
-  next_sample_time.Day = rtc.getDay() + sample_interval.Day;
-  next_sample_time.Hour = rtc.getHours() + sample_interval.Hour;
-  next_sample_time.Minute = rtc.getMinutes() + sample_interval.Minute;
+  // next_sample_time.Year = rtc.getYear() + sample_interval.Year;
+  // next_sample_time.Year = CalendarYrToTm(rtc.getYear() + 2000) + sample_interval.Year;
+  // next_sample_time.Month = rtc.getMonth() + sample_interval.Month;
+  // next_sample_time.Day = rtc.getDay() + sample_interval.Day;
+  // next_sample_time.Hour = rtc.getHours() + sample_interval.Hour;
+  // next_sample_time.Minute = rtc.getMinutes() + sample_interval.Minute;
+
+  uint32_t nowEpoch = rtc.getEpoch();
+  uint32_t intervalSeconds =
+      sample_interval.Day * 86400UL +
+      sample_interval.Hour * 3600UL +
+      sample_interval.Minute * 60UL +
+      sample_interval.Second;
+
+  uint32_t nextEpoch = nowEpoch + intervalSeconds;
+  breakTime(nextEpoch, next_sample_time);
 
   soak_time.Minute = DEFAULT_SOAK_TIME_MIN;
   soak_time.Second = DEFAULT_SOAK_TIME_SEC;
@@ -103,40 +133,188 @@ void onLowTrigger() {
  */
 void updateAlarm(tmElements_t delay_time) {
 
-  breakTime(makeTime(next_sample_time), next_sample_time);
+  // breakTime(makeTime(next_sample_time), next_sample_time);
 
-  next_sample_time.Year = delay_time.Year;
-  next_sample_time.Month = delay_time.Month;
-  next_sample_time.Day = delay_time.Day;
-  next_sample_time.Hour = delay_time.Hour;
-  next_sample_time.Minute = delay_time.Minute;
+  // next_sample_time.Year = delay_time.Year;
+  // next_sample_time.Month = delay_time.Month;
+  // next_sample_time.Day = delay_time.Day;
+  // next_sample_time.Hour = delay_time.Hour;
+  // next_sample_time.Minute = delay_time.Minute;
+
+  next_sample_time = delay_time;
+
+  time_t t = makeTime(next_sample_time);
+  breakTime(t, next_sample_time);
 
 
   
   rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0); // Set alarm for the specified time
-  rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
+  //rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
+  //rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, tmYearToCalendar(next_sample_time.Year));
+  rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, rtc.getYear());
+  
+  rtc.disableAlarm();
   rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS); // Match hours and minutes
   rtc.attachInterrupt(alarmTriggered); // Attach the ISR for the alarm interrupt
 }
 
 /**
+ * @brief update timer alarm with respect to the next start time
+ * 
+ * @param startHour start time hour in 24-hour representation
+ * @param startMinute start time minute
+ */
+
+void updateAlarm(int startHour, int startMinute) {
+    //Get current time
+    int nowHour = rtc.getHours();
+    int nowMin  = rtc.getMinutes();
+    int nowSec  = rtc.getSeconds();
+    int nowDay  = rtc.getDay();
+    int nowMonth = rtc.getMonth();
+    int nowYear  = rtc.getYear() + 2000;
+
+    //Start with today as candidate
+    next_sample_time.Year   = CalendarYrToTm(nowYear);
+    next_sample_time.Month  = nowMonth;
+    next_sample_time.Day    = nowDay;
+    next_sample_time.Hour   = startHour;
+    next_sample_time.Minute = startMinute;
+    next_sample_time.Second = 0;
+
+    //If start time already passed today, move to next day
+    // if (nowHour > startHour || (nowHour == startHour && nowMin >= startMinute)) {
+    //     next_sample_time.Day += 1;
+
+    //     //Handle month/year rollover if needed
+    //     // int daysInMonth = getDaysInMonth(next_sample_time.Month, next_sample_time.Year);
+    //     int calendarYear = tmYearToCalendar(next_sample_time.Year);
+    //     int daysInMonth = getDaysInMonth(next_sample_time.Month, calendarYear);
+    //     if (next_sample_time.Day > daysInMonth) {
+    //         next_sample_time.Day = 1;
+    //         next_sample_time.Month += 1;
+    //         if (next_sample_time.Month > 12) {
+    //             next_sample_time.Month = 1;
+    //             next_sample_time.Year += 1;
+    //         }
+    //     }
+    // }
+
+    // //Break time into struct for internal use
+    // // breakTime(makeTime(next_sample_time), next_sample_time);
+    // time_t startEpoch = makeTime(next_sample_time);
+    // breakTime(startEpoch, next_sample_time);
+
+    //time_t nowEpoch = rtc.getEpoch();
+    //time_t nextEpoch = nowEpoch;
+
+    //next_sample_time.Hour = startHour;
+    //next_sample_time.Minute = startMinute;
+    //next_sample_time.Second = 0;
+    //breakTime(makeTime(next_sample_time), next_sample_time);
+
+    //if (makeTime(next_sample_time) <= nowEpoch) {
+    //    //start time passed,add 1 day
+    //    nextEpoch += 86400UL;
+    //    breakTime(nextEpoch, next_sample_time);
+    //}
+
+    time_t nowEpoch = rtc.getEpoch();
+    time_t startEpoch = makeTime(next_sample_time);
+
+    if (startEpoch <= nowEpoch) {
+      startEpoch += 86400UL; //move start time to tomorrow
+    }
+
+    breakTime(startEpoch, next_sample_time);
+    
+
+    // Set RTC alarm
+    rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0);
+    //rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
+    //rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, tmYearToCalendar(next_sample_time.Year));
+    rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month,rtc.getYear());
+    rtc.disableAlarm();
+    rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
+    rtc.attachInterrupt(alarmTriggered);
+}
+
+/**
+ * @brief Calculates the days in a particular month and year, utility function for setting the start time
+ * 
+ */
+
+int getDaysInMonth(int month, int year) {
+    switch (month) {
+        case 1: case 3: case 5: case 7: case 8: case 10: case 12:
+            return 31;
+        case 4: case 6: case 9: case 11:
+            return 30;
+        case 2:
+            //Leap year 
+            if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0))
+                return 29;
+            else
+                return 28;
+        default:
+            return 30; //fallback, should never happen
+    }
+}
+
+
+/**
  * @brief update timer alarm for next sample interval
  * 
  */
-void updateAlarm() {
-  next_sample_time.Year = rtc.getYear() + sample_interval.Year;
-  next_sample_time.Month = rtc.getMonth() + sample_interval.Month;
-  next_sample_time.Day = rtc.getDay() + sample_interval.Day;
-  next_sample_time.Hour = rtc.getHours() + sample_interval.Hour;
-  next_sample_time.Minute = rtc.getMinutes() + sample_interval.Minute;
+// void updateAlarm() {
+//   next_sample_time.Year = rtc.getYear() + sample_interval.Year;
+//   next_sample_time.Month = rtc.getMonth() + sample_interval.Month;
+//   next_sample_time.Day = rtc.getDay() + sample_interval.Day;
+//   next_sample_time.Hour = rtc.getHours() + sample_interval.Hour;
+//   next_sample_time.Minute = rtc.getMinutes() + sample_interval.Minute;
 
 
-  breakTime(makeTime(next_sample_time), next_sample_time);
+//   breakTime(makeTime(next_sample_time), next_sample_time);
   
-  rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0); // Set alarm for the specified time
-  rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
-  rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS); // Match hours and minutes
-  rtc.attachInterrupt(alarmTriggered); // Attach the ISR for the alarm interrupt
+//   rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0); // Set alarm for the specified time
+//   rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
+//   rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS); // Match hours and minutes
+//   rtc.attachInterrupt(alarmTriggered); // Attach the ISR for the alarm interrupt
+// }
+
+void updateAlarm() {
+  uint32_t nowSec = rtc.getEpoch();
+
+  uint32_t intervalSeconds =
+      sample_interval.Day * 86400UL +
+      sample_interval.Hour * 3600UL +
+      sample_interval.Minute * 60UL +
+      sample_interval.Second;
+  
+  if (intervalSeconds == 0) return;
+
+  uint32_t nextEpoch = nowSec + intervalSeconds;
+
+  breakTime(nextEpoch, next_sample_time);
+
+  rtc.setAlarmTime(
+      next_sample_time.Hour,
+      next_sample_time.Minute,
+      0
+  );
+
+  rtc.setAlarmDate(
+      next_sample_time.Day,
+      next_sample_time.Month,
+      //next_sample_time.Year
+      //tmYearToCalendar(next_sample_time.Year)
+      rtc.getYear()
+  );
+
+  rtc.disableAlarm();
+  rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
+  rtc.attachInterrupt(alarmTriggered);
+
 }
 
 /**
@@ -144,19 +322,57 @@ void updateAlarm() {
  * 
  * Handles alarm event by updating the next sample time and changing system state.
  */
-void alarmTriggered() {
-  // This will be called when the alarm is triggered
-  // You can handle additional tasks here if needed
-  next_sample_time.Year = rtc.getYear() + sample_interval.Year;
-  next_sample_time.Month = rtc.getMonth() + sample_interval.Month;
-  next_sample_time.Day = rtc.getDay() + sample_interval.Day;
-  next_sample_time.Hour = rtc.getHours() + sample_interval.Hour;
-  next_sample_time.Minute = rtc.getMinutes() + sample_interval.Minute;
+// void alarmTriggered() {
+//   // This will be called when the alarm is triggered
+//   // You can handle additional tasks here if needed
+//   next_sample_time.Year = rtc.getYear() + sample_interval.Year;
+//   next_sample_time.Month = rtc.getMonth() + sample_interval.Month;
+//   next_sample_time.Day = rtc.getDay() + sample_interval.Day;
+//   next_sample_time.Hour = rtc.getHours() + sample_interval.Hour;
+//   next_sample_time.Minute = rtc.getMinutes() + sample_interval.Minute;
   
-  breakTime(makeTime(next_sample_time), next_sample_time);
+//   breakTime(makeTime(next_sample_time), next_sample_time);
 
-  rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0); // Set alarm for the specified time
-  rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
+//   rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0); // Set alarm for the specified time
+//   rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
+
+//   if (state == STANDBY && is_interval_sampling) {
+//     state = RELEASE;
+//   }
+// }
+
+void alarmTriggered() {
+
+  //sendToPython("ALARM_TRIGGERED");
+
+  rtc.disableAlarm();
+
+  uint32_t now = rtc.getEpoch();
+
+  uint32_t intervalSeconds =
+      sample_interval.Day * 86400UL +
+      sample_interval.Hour * 3600UL +
+      sample_interval.Minute * 60UL +
+      sample_interval.Second;
+
+  uint32_t nextEpoch = now + intervalSeconds;
+
+  breakTime(nextEpoch, next_sample_time);
+
+  rtc.setAlarmTime(next_sample_time.Hour,
+                  next_sample_time.Minute,
+                  0);
+
+  rtc.setAlarmDate(next_sample_time.Day,
+                  next_sample_time.Month,
+                  //next_sample_time.Year);
+                  //tmYearToCalendar(next_sample_time.Year));
+                  rtc.getYear());
+
+  // rtc.setAlarmTime(next_sample_time.Hour, next_sample_time.Minute, 0); // Set alarm for the specified time
+  // rtc.setAlarmDate(next_sample_time.Day, next_sample_time.Month, next_sample_time.Year);
+
+  rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
 
   if (state == STANDBY && is_interval_sampling) {
     state = RELEASE;
@@ -340,7 +556,9 @@ String getNextSampleTime() {
   snprintf(date_time_string, sizeof(date_time_string), "%02d-%02d-%02d %02d:%02d",
            next_sample_time.Month,
            next_sample_time.Day,
-           next_sample_time.Year,
+          //  next_sample_time.Year,
+          //tmYearToCalendar(next_sample_time.Year),
+          rtc.getYear(),
            next_sample_time.Hour,
            next_sample_time.Minute);
 
@@ -358,7 +576,8 @@ tmElements_t parseTime(const char* time_str) {
   sscanf(time_str, "%4d-%2d-%2d %2d:%2d:%2d", &year, &month, &day, &hour, &minute, &second);
 
   tmElements_t tm;
-  tm.Year = year;  // Arduino time library uses years since 1970
+  // tm.Year = year;  // Arduino time library uses years since 1970
+  tm.Year = CalendarYrToTm(year);
   tm.Month = month;
   tm.Day = day;
   tm.Hour = hour;
@@ -730,7 +949,9 @@ void sendToPython(String string_to_send) {
             replyString += "M";
             replyString += String(sample_interval.Minute);
             replyString += "NS";
-            replyString += String(rtc.getAlarmYear());
+            //replyString += String(rtc.getAlarmYear() + 2000);
+            //replyString += String(rtc.getAlarmYear());
+            replyString += String(tmYearToCalendar(next_sample_time.Year));
             replyString += "Y";
             replyString += String(rtc.getAlarmMonth());
             replyString += "O";
@@ -753,26 +974,40 @@ void sendToPython(String string_to_send) {
               // Extract substring from after H to before M
               String hStr = data.substring(hIndex + 1, mIndex);
               hValue = hStr.toInt();
+              int sIndex = data.indexOf("ST");
 
-              // Extract substring from after M to the end
-              String mStr = data.substring(mIndex + 1);
+              //Extract substring from after M to the end
+              String mStr;
+              if (sIndex != -1) {
+                mStr = data.substring(mIndex + 1, sIndex);
+              } else {
+                mStr = data.substring(mIndex + 1);
+              }
+              
               mValue = mStr.toInt();
-
               sample_interval.Hour = hValue;
               sample_interval.Minute = mValue;
-              updateAlarm();
+
+              if (sIndex != -1) { //Start time parsing
+                int stHourIndex = data.indexOf('H', sIndex);
+                int stMinIndex = data.indexOf('M', stHourIndex);
+                if (stHourIndex != -1 && stMinIndex != -1 && stMinIndex > stHourIndex) {
+                  String startHourStr = data.substring(stHourIndex + 1,  stMinIndex);
+                  String startMinStr = data.substring(stMinIndex + 1);
+
+                  int startHourInt = startHourStr.toInt();
+                  int startMinInt = startMinStr.toInt();
+                  updateAlarm(startHourInt, startMinInt);
+                }
+              }
+              else {
+                updateAlarm();
+              }
               replyString += is_interval_sampling? "S1" : "S0";
             }
             else {
               replyString += "1";
             }
-            
-
-            // Serial.print("H value: ");
-            // Serial.println(hValue);
-            // Serial.print("M value: ");
-            // Serial.println(mValue);
-
           }
           else if (data[1] == '2') {
             is_interval_sampling = true;

@@ -21,7 +21,7 @@
 #define COMMS_REPORT_SAMPLE_END                     "EC"  //Report that sample is over!
 
 /************************* Default Timings *************************/
-#define DEFAULT_SAMPLE_INTERVAL_HOUR 8
+#define DEFAULT_SAMPLE_INTERVAL_HOUR 24
 #define DEFAULT_SAMPLE_INTERVAL_MIN  0
 #define DEFAULT_SAMPLE_INTERVAL_SEC  0
 

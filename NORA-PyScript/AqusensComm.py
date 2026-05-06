@@ -114,8 +114,14 @@ def handleTerminalInput(ser, terminalCommand):
             time.sleep(0.05)
             replyString = safe_serial_readline(ser)
             #print("got", replyString)
+            #print("RAW REPLY:", repr(replyString)) #enables troubleshooting to see what the system is sending NORA
             pattern = r"([01])H(\d+)M(\d+)NS(\d+)Y(\d+)O(\d+)D(\d+)H(\d+)M"
             match = re.match(pattern, replyString)
+            
+            if not match:
+                print("SATUS PARSE FAILED")
+                print("Reply was:",replyString)
+                return
 
             if match:
                 isSampling = match.group(1) == '1'
@@ -123,6 +129,8 @@ def handleTerminalInput(ser, terminalCommand):
                 interval_minutes = int(match.group(3))
 
                 alarm_year = int(match.group(4))
+                if alarm_year <100:
+                    alarm_year += 2000
                 alarm_month = int(match.group(5))
                 alarm_day = int(match.group(6))
                 alarm_hour = int(match.group(7))
@@ -131,6 +139,11 @@ def handleTerminalInput(ser, terminalCommand):
                 status_string = "enabled" if isSampling else "disabled"
                 hour_str = " hour" if interval_hours == 1 else " hours"
                 minute_str = " minute" if interval_minutes == 1 else " minutes"
+                
+                max_day = calendar.monthrange(alarm_year, alarm_month) [1]
+                if alarm_day > max_day:
+                    print(f"WARNING: Invalid date from device: {alarm_year}-{alarm_month}-{alarm_day}")
+                    alarm_day = max_day
 
                 # Construct datetime object directly
                 next_sample_time = datetime(alarm_year, alarm_month, alarm_day, alarm_hour, alarm_minute)
@@ -152,17 +165,44 @@ def handleTerminalInput(ser, terminalCommand):
                 print("Failed to parse replyString")
             
         case "set-interval":
-            if len(terminalCommand) != 3:
-                print("ERR: Invalid set-interval usage!\n"
-                      "  Usage: set-interval <hours> <minutes>\n")
+            errString = "ERR: Invalid set-interval usage!\n" \
+                      "  Usage: set-interval <hours> <minutes> [-start-time <hours> <minutes>]\n"
+            if len(terminalCommand) not in (3, 5):
+                print(errString)
+                return
+            elif len(terminalCommand) == 5 and terminalCommand[3] != "-start-time":
+                print(errString)
+                return
             else:
                 hours = (terminalCommand[1])
                 minutes = (terminalCommand[2])
                 hour_str = " hour" if hours == 1 else " hours"
                 minute_str = " minute" if minutes == 1 else " minutes"
-                print(f"Setting sampling interval to {hours}{hour_str} and {minutes}{minute_str}...")
+                if len(terminalCommand) == 3:
+                    print(f"Setting sampling interval to {hours}{hour_str} and {minutes}{minute_str}...")
                 
-                sendString = "Q1H" + hours + "M" + minutes + "\n"
+                sendString = "Q1H" + hours + "M" + minutes
+                if len(terminalCommand) == 5 and terminalCommand[3] == "-start-time":
+                    try:
+                        startHour_str, startMin_str = terminalCommand[4].split(":", 1)
+                        intHour = int(startHour_str)
+                        intMin = int(startMin_str)
+                        if (intHour > 23 or intHour < 0):
+                            print("ERR: Invalid start time: " + terminalCommand[4])
+                            return
+                        if intMin > 59 or intMin < 0:
+                            print("ERR: Invalid start time: " + terminalCommand[4])
+                            return
+                    except ValueError:
+                        print("ERR: Invalid start time: " + terminalCommand[4])
+                        return
+
+                    intHourStr = str(intHour)
+                    intMinStr = str(intMin)
+                    sendString += "STH" + str(intHour) + "M" + str(intMin)
+                    print(f"Setting sampling interval to {hours}{hour_str} and {minutes}{minute_str}, "f"next sample triggered at {intHour:02d}:{intMin:02d}...")
+                    #print(f"Setting sampling interval to {hours}{hour_str} and {minutes}{minute_str}, next sample triggered at {intHourStr if intHour > 9 else '0' + intHourStr}:{intMinStr if intMin > 9 else '0' + intMinStr}...")
+                sendString += "\n"
                 safe_serial_write(ser, sendString)
                 time.sleep(0.05)
                 reply = safe_serial_readline(ser)
@@ -242,14 +282,23 @@ def handleTerminalInput(ser, terminalCommand):
                 print(f"ERR: Recv unknown reply -> {reply}")
             
         case "help":
-            print("Known commands:\n"
-                "  status                              — View the current status of NORA and next sample time\n" #Q0, recv 1HxxMxx for sampling, or 0HxxMxx for not sampling
-                "  set-interval <hours> <minutes>      — Set the sampling interval (hours and minutes)\n" #Q1HxxMxx
-                "  start-sampling                      — Enable interval sampling\n" #Q2
-                "  stop-sampling                       — Disable interval sampling\n" #Q3
-                "  run-sample                          — Start a sample manually\n" #Q4
-                "  read-temps                          — Returns the temperatures of all system RTDs\n" #Q5, recv 0R1XX.XXR2xx.xxR3xx.xx
-                "  help                                — See this help message again")
+            print(
+                "Known commands:\n"
+                "\n"
+                "  status\n"
+                "      View the current status of NORA and next sample time\n"
+                "\n"
+                "  set-interval <hours> <minutes> [-start-time <hour>:<minute>]\n"
+                "      Set the sampling interval (hours and minutes)\n"
+                "      Optional: set the interval start time (24-hour / military time)\n"
+                "\n"
+                "  start-sampling      Enable interval sampling\n"
+                "  stop-sampling       Disable interval sampling\n"
+                "  run-sample          Start a sample manually\n"
+                "  read-temps          Return the temperatures of all system RTDs\n"
+                "  help                Show this help message\n"
+            )
+
         case _:
             print(
                 f"ERR: UNKNOWN COMMAND {terminalCommand[0]}\n"
@@ -427,6 +476,7 @@ def wait_for_file_response(expected_prefix, expected_content, min_length):
             time.sleep(0.1)
 
 def flushAqusensFifos():
+    if (CLI_DEBUG_MODE): return
     with open(AQUSENS_DIR + WRITE_FILE, 'w'):
         pass
     with open(AQUSENS_DIR + READ_FILE, 'w'):

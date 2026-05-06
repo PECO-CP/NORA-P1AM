@@ -94,7 +94,8 @@ void setStartTimeLoop() {
   tmElements_t adjusted_start_time;
   adjusted_start_time.Month = rtc.getMonth();
   adjusted_start_time.Day = rtc.getDay();
-  adjusted_start_time.Year = rtc.getYear(); 
+  //adjusted_start_time.Year = rtc.getYear();
+  adjusted_start_time.Year = CalendarYrToTm(rtc.getYear() + 2000);
   adjusted_start_time.Hour = rtc.getHours();
   adjusted_start_time.Minute = rtc.getMinutes();
   char key;
@@ -148,7 +149,8 @@ void setClockLoop() {
   tmElements_t adjusted_time;
   adjusted_time.Month = rtc.getMonth();
   adjusted_time.Day = rtc.getDay();
-  adjusted_time.Year = rtc.getYear(); 
+  //adjusted_time.Year = rtc.getYear();
+  adjusted_time.Year = CalendarYrToTm(rtc.getYear() +2000);
   adjusted_time.Hour = rtc.getHours();
   adjusted_time.Minute = rtc.getMinutes();
   char key;
